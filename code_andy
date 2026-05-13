@@ -1,0 +1,218 @@
+void rechercherCategorie(LivreArray *livres) {
+
+    char categorie[50];
+    int trouve = 0;
+    size_t i;
+
+    printf("Categorie recherchee : ");
+    fgets(categorie, sizeof(categorie), stdin);
+
+    trim_newline(categorie);
+
+    print_separator();
+
+    for (i = 0; i < livres->size; i++) {
+
+        if (strcmp(livres->data[i].categorie, categorie) == 0) {
+
+            printf("ID : %d\n", livres->data[i].id);
+            printf("Titre : %s\n", livres->data[i].titre);
+            printf("Auteur : %s\n", livres->data[i].auteur);
+            printf("Disponible : %s\n",
+                   livres->data[i].estEmprunte ? "Non" : "Oui");
+
+            print_separator();
+
+            trouve = 1;
+        }
+    }
+
+    if (!trouve) {
+        printf("Aucun livre trouve.\n");
+    }
+}
+
+/* =========================================================
+   RECHERCHE PAR AUTEUR
+   ========================================================= */
+
+void rechercherAuteur(LivreArray *livres) {
+
+    char auteur[100];
+    int trouve = 0;
+    size_t i;
+
+    printf("Auteur recherche : ");
+    fgets(auteur, sizeof(auteur), stdin);
+
+    trim_newline(auteur);
+
+    print_separator();
+
+    for (i = 0; i < livres->size; i++) {
+
+        if (strcmp(livres->data[i].auteur, auteur) == 0) {
+
+            printf("ID : %d\n", livres->data[i].id);
+            printf("Titre : %s\n", livres->data[i].titre);
+            printf("Categorie : %s\n", livres->data[i].categorie);
+            printf("Disponible : %s\n",
+                   livres->data[i].estEmprunte ? "Non" : "Oui");
+
+            print_separator();
+
+            trouve = 1;
+        }
+    }
+
+    if (!trouve) {
+        printf("Aucun livre trouve.\n");
+    }
+}
+
+/* =========================================================
+   TRI ALPHABETIQUE
+   ========================================================= */
+
+void triAlphabetique(LivreArray *livres) {
+
+    size_t i;
+    size_t j;
+
+    Livre temp;
+
+    for (i = 0; i < livres->size - 1; i++) {
+
+        for (j = 0; j < livres->size - i - 1; j++) {
+
+            if (strcmp(livres->data[j].titre,
+                       livres->data[j + 1].titre) > 0) {
+
+                temp = livres->data[j];
+
+                livres->data[j] = livres->data[j + 1];
+
+                livres->data[j + 1] = temp;
+            }
+        }
+    }
+
+    printf("Tri alphabetique effectue.\n");
+}
+
+/* =========================================================
+   MENU PHASES 5 ET 6
+   ========================================================= */
+
+void menuPhase5Phase6(LivreArray *livres,
+                      UtilisateurArray *users,
+                      EmpruntArray *emprunts) {
+
+    int choix = -1;
+
+    while (choix != 0) {
+
+        print_separator();
+
+        printf("CY-biblioTECH\n");
+
+        print_separator();
+
+        printf("1. Afficher les livres\n");
+        printf("2. Recherche par categorie\n");
+        printf("3. Recherche par auteur\n");
+        printf("4. Trier les livres par ordre alphabetique\n");
+        printf("5. Sauvegarder les donnees\n");
+        printf("0. Quitter\n");
+
+        print_separator();
+
+        printf("Votre choix : ");
+
+        if (scanf("%d", &choix) != 1) {
+
+            printf("Entree invalide.\n");
+
+            clear_input_buffer();
+
+            continue;
+        }
+
+        clear_input_buffer();
+
+        switch (choix) {
+
+            case 1:
+
+                print_livres(livres);
+
+                break;
+
+            case 2:
+
+                rechercherCategorie(livres);
+
+                break;
+
+            case 3:
+
+                rechercherAuteur(livres);
+
+                break;
+
+            case 4:
+
+                triAlphabetique(livres);
+
+                print_livres(livres);
+
+                break;
+
+            case 5:
+
+                printf("Sauvegarde des donnees...\n");
+
+                if (save_all(livres, users, emprunts)) {
+
+                    printf("Sauvegarde reussie.\n");
+
+                } else {
+
+                    printf("Erreur pendant la sauvegarde.\n");
+                }
+
+                break;
+
+            case 0:
+
+                printf("Sauvegarde finale...\n");
+
+                if (!save_all(livres, users, emprunts)) {
+
+                    printf("Erreur pendant la sauvegarde finale.\n");
+
+                } else {
+
+                    printf("Sauvegarde terminee.\n");
+                }
+
+                printf("Liberation de la memoire...\n");
+
+                free_livres(livres);
+
+                free_users(users);
+
+                free_emprunts(emprunts);
+
+                printf("Programme ferme proprement.\n");
+
+                break;
+
+            default:
+
+                printf("Choix invalide.\n");
+
+                break;
+        }
+    }
+}

@@ -1,1 +1,128 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef enum {
+    ETUDIANT,
+    PROFESSEUR,
+    BIBLIOTHECAIRE
+} TypeUtilisateur;
+
+typedef enum {
+    DISPONIBLE,
+    INDISPONIBLE
+} StatutLivre;
+
+typedef enum {
+    ACTIF,
+    SUSPENDU
+} StatutUtilisateur;
+
+typedef struct {
+    int id;
+    char titre[100];
+    char auteur[100];
+    char categorie[50];
+    StatutLivre statut;
+} Livre;
+
+typedef struct {
+    char login[50];
+    char password[50];
+    TypeUtilisateur type;
+    int nbLivresEmpruntes;
+    StatutUtilisateur statut;
+} Utilisateur;
+
+/* PHASE 2 : charger les livres depuis livres.txt */
+Livre* chargerLivres(int *nbLivres) {
+    FILE *fichier;
+    Livre *tab;
+    int i;
+
+    fichier = fopen("livres.txt", "r");
+    if (fichier == NULL) {
+        printf("Erreur ouverture livres.txt\n");
+        *nbLivres = 0;
+        return NULL;
+    }
+
+    fscanf(fichier, "%d", nbLivres);
+
+    tab = malloc((*nbLivres) * sizeof(Livre));
+    if (tab == NULL) {
+        printf("Erreur allocation memoire\n");
+        fclose(fichier);
+        *nbLivres = 0;
+        return NULL;
+    }
+
+    for (i = 0; i < *nbLivres; i++) {
+        fscanf(fichier, "%d %s %s %s %d",
+               &tab[i].id,
+               tab[i].titre,
+               tab[i].auteur,
+               tab[i].categorie,
+               (int*)&tab[i].statut);
+    }
+
+    fclose(fichier);
+    return tab;
+}
+
+/* PHASE 2 : charger les utilisateurs depuis users.txt */
+Utilisateur* chargerUtilisateurs(int *nbUsers) {
+    FILE *fichier;
+    Utilisateur *tab;
+    int i;
+
+    fichier = fopen("users.txt", "r");
+    if (fichier == NULL) {
+        printf("Erreur ouverture users.txt\n");
+        *nbUsers = 0;
+        return NULL;
+    }
+
+    fscanf(fichier, "%d", nbUsers);
+
+    tab = malloc((*nbUsers) * sizeof(Utilisateur));
+    if (tab == NULL) {
+        printf("Erreur allocation memoire\n");
+        fclose(fichier);
+        *nbUsers = 0;
+        return NULL;
+    }
+
+    for (i = 0; i < *nbUsers; i++) {
+        fscanf(fichier, "%s %s %d %d %d",
+               tab[i].login,
+               tab[i].password,
+               (int*)&tab[i].type,
+               &tab[i].nbLivresEmpruntes,
+               (int*)&tab[i].statut);
+    }
+
+    fclose(fichier);
+    return tab;
+}
+
+
+
+int main() {
+    Livre *bibliotheque;
+    Utilisateur *utilisateurs;
+    int nbLivres;
+    int nbUsers;
+
+    bibliotheque = chargerLivres(&nbLivres);
+    utilisateurs = chargerUtilisateurs(&nbUsers);
+
+    printf("Nombre de livres charges : %d\n", nbLivres);
+    printf("Nombre d'utilisateurs charges : %d\n", nbUsers);
+
+    free(bibliotheque);
+    free(utilisateurs);
+
+    return 0;
+}
+
 

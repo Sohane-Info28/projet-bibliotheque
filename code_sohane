@@ -213,7 +213,7 @@ Livre* chargerLivres(int *nbLivres) {
                tab[i].titre,
                tab[i].auteur,
                tab[i].categorie,
-               (int*)&tab[i].statut);
+               (int*)&tab[i].statut);   // ou ya ce code pour cette ligne parce que sa peut faire un peu bourrin (int temp; fscanf(..., &temp); tab[i].statut = temp;)
     }
 
     fclose(fichier);
@@ -252,7 +252,7 @@ Utilisateur* chargerUtilisateurs(int *nbUsers) {
                tab[i].password,
                (int*)&tab[i].type,
                &tab[i].nbLivresEmpruntes,
-               (int*)&tab[i].statut);
+               (int*)&tab[i].statut);   // ou ya ce code pour cette ligne parce que sa peut faire un peu bourrin (int temp; fscanf(..., &temp); tab[i].statut = temp;)
     }
 
     fclose(fichier);

@@ -126,3 +126,187 @@ int main() {
 }
 
 
+
+
+
+
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+typedef enum {
+    ETUDIANT,        // Quota limité (3 livres), accès aux fonctions de base.
+    PROFESSEUR,      // Quota plus large (5 livres), accès aux fonctions de base.
+    BIBLIOTHECAIRE   // "Super-utilisateur" : peut modifier le stock et les comptes.
+} TypeUtilisateur;
+
+
+typedef enum {
+    DISPONIBLE,    // Le livre est en rayon, n'importe qui peut l'emprunter.
+    INDISPONIBLE   // Le livre est déjà sorti ou réservé, on ne peut pas le prendre.
+} StatutLivre;
+
+
+typedef enum {
+    ACTIF,      // L'utilisateur est en règle : il peut se connecter et emprunter.
+    SUSPENDU    // L'utilisateur est bloqué (souvent à cause d'un retard trop long).
+} StatutUtilisateur;
+
+
+typedef struct {
+    int id;                // Identifiant unique du livre (ex: 101, 102...) pour le retrouver facilement
+    char titre[100];       // Le titre de l'ouvrage (ex: "Le Petit Prince")
+    char auteur[100];      // Le nom de l'auteur (ex: "Antoine de Saint-Exupéry")
+    char categorie[50];    // Le genre du livre (ex: "Roman", "Science-fiction", "BD")
+    StatutLivre statut;    // État actuel : DISPONIBLE (0) ou INDISPONIBLE (1) s'il est déjà emprunté
+} Livre;
+
+
+typedef struct {
+    char login[50];            // L'identifiant unique (pseudo) servant à se connecter
+    char password[50];         // Le mot de passe associé pour sécuriser le compte
+    TypeUtilisateur type;      // Rôle (ETUDIANT, PROFESSEUR, etc.) : sert à définir les quotas d'emprunt
+    int nbLivresEmpruntes;     // Compteur de livres actuellement détenus (pour ne pas dépasser le quota)
+    StatutUtilisateur statut;  // État du compte (ACTIF ou SUSPENDU en cas de retards trop importants)
+} Utilisateur;
+
+
+typedef struct {
+    int idLivre;          // L'identifiant unique du livre emprunté
+    char loginUser[50];   // Le login de l'utilisateur qui a le livre
+    time_t dateRendu;     // La date limite de rendu (format timestamp)
+} Emprunt;
+
+
+//Phase 2 : Le stockage et les fichiers (Un programme de bibliothèque ne sert à rien s&#39;il oublie tout quand on l&#39;éteint. Le programme doit être capable de lire les données sauvegardées sur ton ordinateur.)
+
+//PHASE 2 (tache 4: Créer des fonctions pour charger les livres depuis des fichiers .txt au démarrage du programme.
+
+Livre* chargerLivres(int *nbLivres) {
+    FILE *fichier;
+    Livre *tab;
+    int i;
+
+    fichier = fopen("livres.txt", "r");
+    if (fichier == NULL) {
+        printf("Erreur ouverture livres.txt\n");
+        *nbLivres = 0;
+        return NULL;
+    }
+
+    fscanf(fichier, "%d", nbLivres);
+
+    tab = malloc((*nbLivres) * sizeof(Livre));
+    if (tab == NULL) {
+        printf("Erreur allocation memoire\n");
+        fclose(fichier);
+        *nbLivres = 0;
+        return NULL;
+    }
+
+    for (i = 0; i < *nbLivres; i++) {
+        fscanf(fichier, "%d %s %s %s %d",
+               &tab[i].id,
+               tab[i].titre,
+               tab[i].auteur,
+               tab[i].categorie,
+               (int*)&tab[i].statut);
+    }
+
+    fclose(fichier);
+    return tab;
+}
+
+
+// PHASE 2 (tache 4) : charger les utilisateurs depuis users.txt *///PHASE 2 (tache 4: Créer des fonctions pour charger les utilisateurs depuis des fichiers .txt au démarrage du programme.
+
+
+Utilisateur* chargerUtilisateurs(int *nbUsers) {
+    FILE *fichier;
+    Utilisateur *tab;
+    int i;
+
+    fichier = fopen("users.txt", "r");
+    if (fichier == NULL) {
+        printf("Erreur ouverture users.txt\n");
+        *nbUsers = 0;
+        return NULL;
+    }
+
+    fscanf(fichier, "%d", nbUsers);
+
+    tab = malloc((*nbUsers) * sizeof(Utilisateur));
+    if (tab == NULL) {
+        printf("Erreur allocation memoire\n");
+        fclose(fichier);
+        *nbUsers = 0;
+        return NULL;
+    }
+
+    for (i = 0; i < *nbUsers; i++) {
+        fscanf(fichier, "%s %s %d %d %d",
+               tab[i].login,
+               tab[i].password,
+               (int*)&tab[i].type,
+               &tab[i].nbLivresEmpruntes,
+               (int*)&tab[i].statut);
+    }
+
+    fclose(fichier);
+    return tab;
+}
+
+/* PHASE 2 complétée : charger les emprunts depuis emprunts.txt */
+Emprunt* chargerEmprunts(int *nbEmprunts) {
+    FILE *fichier;
+    Emprunt *tab;
+    int i;
+
+    fichier = fopen("emprunts.txt", "r");
+    if (fichier == NULL) {
+        printf("Fichier emprunts.txt non trouve (ou vide). Initialisation a 0.\n");
+        *nbEmprunts = 0;
+        return NULL;
+    }
+
+    // On lit le nombre d'emprunts sur la première ligne
+    if (fscanf(fichier, "%d", nbEmprunts) != 1) {
+        *nbEmprunts = 0;
+        fclose(fichier);
+        return NULL;
+    }
+
+    // Allocation dynamique (Tâche 5)
+    tab = malloc((*nbEmprunts) * sizeof(Emprunt));
+    if (tab == NULL) {
+        printf("Erreur allocation memoire pour les emprunts\n");
+        fclose(fichier);
+        *nbEmprunts = 0;
+        return NULL;
+    }
+
+    // Lecture de chaque ligne d'emprunt
+    for (i = 0; i < *nbEmprunts; i++) {
+        // On lit l'ID du livre, le login et le timestamp de la date de rendu
+        fscanf(fichier, "%d %s %ld", 
+               &tab[i].idLivre, 
+               tab[i].loginUser, 
+               &tab[i].dateRendu);
+    }
+
+    fclose(fichier);
+    return tab;
+}
+
+
+
+
+
+
+
+
+
+

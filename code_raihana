@@ -1,0 +1,237 @@
+Fonctions de la Phase 3 : Connexion et Inscription
+Cette partie permet de transformer un simple visiteur en utilisateur &quot;connecté&quot;
+en récupérant son index dans le tableau.
+
+/* =========================================================
+PHASE 3 : CONNEXION ET INSCRIPTION
+========================================================= */
+
+/**
+* Vérifie si le login existe et si le mot de passe correspond.
+* Retourne l&#39;index de l&#39;utilisateur si OK, sinon -1.
+*/
+int connexion(const UtilisateurArray *users) {
+char login[LOGIN_LEN];
+char password[PASSWORD_LEN];
+
+printf(&quot;\n--- CONNEXION ---\n&quot;);
+printf(&quot;Login : &quot;);
+scanf(&quot;%s&quot;, login);
+printf(&quot;Mot de passe : &quot;);
+scanf(&quot;%s&quot;, password);
+clear_input_buffer();
+
+for (size_t i = 0; i &lt; users-&gt;size; i++) {
+// On compare les chaînes de caractères
+if (strcmp(users-&gt;data[i].login, login) == 0 &amp;&amp;
+strcmp(users-&gt;data[i].password, password) == 0) {
+printf(&quot;Bienvenue %s !\n&quot;, users-&gt;data[i].login);
+return (int)i; // On retourne l&#39;index pour savoir qui est connecté
+
+}
+}
+
+printf(&quot;Erreur : Login ou mot de passe incorrect.\n&quot;);
+return -1;
+}
+
+/**
+* Ajoute un nouvel utilisateur au tableau (Inscription)
+*/
+void inscription(UtilisateurArray *users) {
+char login[LOGIN_LEN];
+char password[PASSWORD_LEN];
+int type;
+
+printf(&quot;\n--- INSCRIPTION ---\n&quot;);
+printf(&quot;Nouveau login : &quot;);
+scanf(&quot;%s&quot;, login);
+printf(&quot;Mot de passe : &quot;);
+scanf(&quot;%s&quot;, password);
+printf(&quot;Type (0 pour ETUDIANT, 1 pour PROFESSEUR) : &quot;);
+scanf(&quot;%d&quot;, &amp;type);
+clear_input_buffer();
+
+// On agrandit le tableau si nécessaire
+if (ensure_user_capacity(&amp;users-&gt;data, &amp;users-&gt;size, users-&gt;size + 1)) {
+safe_copy(users-&gt;data[users-&gt;size].login, login, LOGIN_LEN);
+safe_copy(users-&gt;data[users-&gt;size].password, password, PASSWORD_LEN);
+users-&gt;data[users-&gt;size].type = (type == 1) ? PROFESSEUR : ETUDIANT;
+
+users-&gt;data[users-&gt;size].nbLivresEmpruntes = 0;
+users-&gt;size++;
+printf(&quot;Compte cree avec succes !\n&quot;);
+}
+}
+
+Fonctions de la Phase 4 : Le Cœur (Emprunts et Retours)
+Ici, on applique les règles : un étudiant a une limite différente d&#39;un professeur,
+et on vérifie si l&#39;utilisateur est en retard.
+
+/* =========================================================
+PHASE 4 : GESTION DES EMPRUNTS (LES REGLES)
+========================================================= */
+
+/**
+* Vérifie si l&#39;utilisateur a des livres dont la date de rendu est dépassée
+*/
+int a_des_retards(const char *login, const EmpruntArray *emprunts) {
+time_t maintenant = time(NULL);
+
+for (size_t i = 0; i &lt; emprunts-&gt;size; i++) {
+if (strcmp(emprunts-&gt;data[i].loginUser, login) == 0) {
+if (maintenant &gt; emprunts-&gt;data[i].dateRendu) {
+return 1; // ALERTE : Retard trouvé
+}
+}
+}
+
+return 0;
+}
+
+/**
+* Logique pour emprunter un livre
+*/
+void emprunter_livre(int userIdx, UtilisateurArray *users, LivreArray *livres,
+EmpruntArray *emprunts) {
+int idRecherche;
+Utilisateur *u = &amp;users-&gt;data[userIdx];
+
+// 1. Vérification des retards
+if (a_des_retards(u-&gt;login, emprunts)) {
+printf(&quot;EMPRUNT IMPOSSIBLE : Vous avez un livre en retard !\n&quot;);
+return;
+}
+
+// 2. Vérification du quota
+int quotaMax = (u-&gt;type == PROFESSEUR) ? MAX_LIVRES_PROF :
+MAX_LIVRES_ETUDIANT;
+if (u-&gt;nbLivresEmpruntes &gt;= quotaMax) {
+printf(&quot;EMPRUNT IMPOSSIBLE : Quota de %d livres atteint.\n&quot;, quotaMax);
+return;
+}
+
+printf(&quot;Entrez l&#39;ID du livre a emprunter : &quot;);
+scanf(&quot;%d&quot;, &amp;idRecherche);
+clear_input_buffer();
+
+// 3. Recherche du livre et disponibilité
+
+for (size_t i = 0; i &lt; livres-&gt;size; i++) {
+if (livres-&gt;data[i].id == idRecherche) {
+if (livres-&gt;data[i].estEmprunte) {
+printf(&quot;Ce livre est deja emprunte par quelqu&#39;un d&#39;autre.\n&quot;);
+return;
+}
+
+// Tout est OK : On procède à l&#39;emprunt
+livres-&gt;data[i].estEmprunte = 1;
+u-&gt;nbLivresEmpruntes++;
+
+// Ajouter à la liste des emprunts
+if (ensure_emprunt_capacity(&amp;emprunts-&gt;data, &amp;emprunts-&gt;size, emprunts-
+&gt;size + 1)) {
+emprunts-&gt;data[emprunts-&gt;size].idLivre = idRecherche;
+safe_copy(emprunts-&gt;data[emprunts-&gt;size].loginUser, u-&gt;login,
+LOGIN_LEN);
+
+// Calcul de la date de rendu (Maintenant + Durée selon type)
+int duree = (u-&gt;type == PROFESSEUR) ? DUREE_PROF_SEC :
+DUREE_ETUDIANT_SEC;
+emprunts-&gt;data[emprunts-&gt;size].dateRendu = time(NULL) + duree;
+
+emprunts-&gt;size++;
+printf(&quot;Livre &#39;%s&#39; emprunte avec succes !\n&quot;, livres-&gt;data[i].titre);
+}
+return;
+}
+}
+printf(&quot;Livre introuvable.\n&quot;);
+
+}
+
+/**
+* Logique pour rendre un livre
+*/
+void rendre_livre(int userIdx, UtilisateurArray *users, LivreArray *livres, EmpruntArray
+*emprunts) {
+int idRecherche;
+Utilisateur *u = &amp;users-&gt;data[userIdx];
+
+printf(&quot;Entrez l&#39;ID du livre a rendre : &quot;);
+scanf(&quot;%d&quot;, &amp;idRecherche);
+clear_input_buffer();
+
+// 1. Chercher l&#39;emprunt pour le supprimer
+int trouve = 0;
+for (size_t i = 0; i &lt; emprunts-&gt;size; i++) {
+if (emprunts-&gt;data[i].idLivre == idRecherche &amp;&amp; strcmp(emprunts-
+&gt;data[i].loginUser, u-&gt;login) == 0) {
+
+// On décale les emprunts dans le tableau pour supprimer celui-ci
+for (size_t j = i; j &lt; emprunts-&gt;size - 1; j++) {
+emprunts-&gt;data[j] = emprunts-&gt;data[j + 1];
+}
+emprunts-&gt;size--;
+trouve = 1;
+break;
+}
+}
+
+if (!trouve) {
+printf(&quot;Vous n&#39;avez pas emprunte ce livre.\n&quot;);
+return;
+}
+
+// 2. Mettre à jour le livre et l&#39;utilisateur
+for (size_t i = 0; i &lt; livres-&gt;size; i++) {
+if (livres-&gt;data[i].id == idRecherche) {
+livres-&gt;data[i].estEmprunte = 0;
+u-&gt;nbLivresEmpruntes--;
+printf(&quot;Merci ! Le livre &#39;%s&#39; a ete rendu.\n&quot;, livres-&gt;data[i].titre);
+return;
+}
+}
+}
+
+Mise à jour de ton main
+Voici comment structurer ton menu pour intégrer ces nouvelles phases. On
+utilise une variable indexConnecte pour savoir si l&#39;utilisateur est dans le menu
+&quot;Visiteur&quot; ou &quot;Connecté&quot;.
+
+int main(void) {
+// ... (Garde ton code de chargement de fichiers ici) ...
+
+int indexConnecte = -1; // -1 signifie personne n&#39;est connecté
+int running = 1;
+
+while (running) {
+print_separator();
+
+if (indexConnecte == -1) {
+printf(&quot;1. Se connecter\n2. S&#39;inscrire\n0. Quitter\nChoix : &quot;);
+int choix;
+scanf(&quot;%d&quot;, &amp;choix);
+if (choix == 1) indexConnecte = connexion(&amp;users);
+else if (choix == 2) inscription(&amp;users);
+else if (choix == 0) running = 0;
+} else {
+printf(&quot;Connecte en tant que : %s\n&quot;, users.data[indexConnecte].login);
+printf(&quot;1. Voir les livres\n2. Emprunter\n3. Rendre\n4. Se deconnecter\n0.
+Quitter\nChoix : &quot;);
+int choix;
+scanf(&quot;%d&quot;, &amp;choix);
+switch(choix) {
+case 1: print_livres(&amp;livres); break;
+case 2: emprunter_livre(indexConnecte, &amp;users, &amp;livres, &amp;emprunts);
+break;
+case 3: rendre_livre(indexConnecte, &amp;users, &amp;livres, &amp;emprunts); break;
+case 4: indexConnecte = -1; break;
+case 0: running = 0; break;
+}
+}
+}
+
+// ... (Garde ton code de sauvegarde et de free() ici) ...
+return 0;
+}

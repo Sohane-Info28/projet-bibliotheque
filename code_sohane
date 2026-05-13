@@ -288,15 +288,16 @@ Emprunt* chargerEmprunts(int *nbEmprunts) {
         return NULL;
     }
 
-    // Lecture de chaque ligne d'emprunt
-    for (i = 0; i < *nbEmprunts; i++) {
-        // On lit l'ID du livre, le login et le timestamp de la date de rendu
-        fscanf(fichier, "%d %s %ld", 
-               &tab[i].idLivre, 
-               tab[i].loginUser, 
-               &tab[i].dateRendu);
+    // Lecture de chaque ligne // On lit l'ID du livre, le login et le timestamp de la date de rendu
+for (i = 0; i < *nbEmprunts; i++) {
+// On lit l'ID du livre, le login et le timestamp de la date de rendu
+    if (fscanf(fichier, "%d %s %ld",
+               &tab[i].idLivre,
+               tab[i].loginUser,
+               &tab[i].dateRendu) != 3) {
+        printf("Erreur lecture emprunt\n");
     }
-
+}
     fclose(fichier);
     return tab;
 }
